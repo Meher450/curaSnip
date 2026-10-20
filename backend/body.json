@@ -1,0 +1,5 @@
+{
+  "content": "rate limit test",
+  "expiresInSeconds": 3600,
+  "burnAfterRead": false
+}

@@ -1,0 +1,5 @@
+ALTER TABLE pastes
+    ADD COLUMN view_count BIGINT NOT NULL DEFAULT 0;
+
+ALTER TABLE pastes
+    ADD COLUMN last_viewed_at TIMESTAMP WITH TIME ZONE;

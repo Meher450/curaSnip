@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: curasnip
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pastebin
+    username: pastebin
+    password: pastebin
+  jpa:
+    hibernate:
+        ddl-auto: validate
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      connect-timeout: 2s #for circuit breaker to gracefully open when redis is down
+      timeout: 2s
+  rate-limit:
+    enabled: false #false to Load-test locally
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 4
+storage:
+  endpoint: http://localhost:9000
+  access-key: minio
+  secret-key: minio123
+  bucket: curasnip-content
+  region: us-east-1
+  inline-threshold-bytes:  50 # less for testing, (use 51200 (50kb) for prod)
+
+
+cleanup:
+  expiry:
+    interval-ms: 15000 # 300000(5min) for prod -  15seconds(15000) for testing locally could be good
+    batch-size: 500
+
+analytics-sync:
+  expiry:
+    interval-ms: 30000
+
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      redisCache:
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+
+      objectStorage:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+
+  retry:
+    instances:
+      objectStorage:
+        maxAttempts: 3
+        waitDuration: 200ms
+        exponentialBackoffMultiplier: 2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus

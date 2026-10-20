@@ -1,0 +1,134 @@
+  name: curasnip
+
+  services:
+    postgres:
+      image: postgres:16
+      container_name: curasnip-postgres
+      restart: unless-stopped
+
+      environment:
+        POSTGRES_DB: pastebin
+        POSTGRES_USER: pastebin
+        POSTGRES_PASSWORD: pastebin
+
+      ports:
+        - "5432:5432"
+
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+
+      networks:
+        - curasnip-network
+
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U pastebin -d pastebin"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+
+    pgadmin:
+      image: dpage/pgadmin4:latest
+      container_name: curasnip-pgadmin
+      restart: unless-stopped
+
+      environment:
+        PGADMIN_DEFAULT_EMAIL: admin@curasnip.com
+        PGADMIN_DEFAULT_PASSWORD: admin123
+
+      ports:
+        - "5050:80"
+
+      volumes:
+        - pgadmin_data:/var/lib/pgadmin
+
+      depends_on:
+        postgres:
+          condition: service_healthy
+
+      networks:
+        - curasnip-network
+
+    minio:
+      # minio/minio and bitnami/minio were pulled from Docker Hub (MinIO's 2025 licensing
+      # change), so this uses adobe/s3mock as a drop-in S3-compatible replacement.
+      # It has no auth and no web console, so MINIO_ROOT_USER/PASSWORD below are unused by
+      # the image itself but kept so the app's storage.access-key/secret-key still apply.
+      image: adobe/s3mock:latest
+      container_name: curasnip-minio
+      restart: unless-stopped
+
+      environment:
+        MINIO_ROOT_USER: minio
+        MINIO_ROOT_PASSWORD: minio123
+
+      ports:
+        - "9000:9090" # S3 API
+
+      networks:
+        - curasnip-network
+
+      healthcheck:
+        test: [ "CMD", "curl", "-f", "http://localhost:9090" ]
+        interval: 30s
+        timeout: 20s
+        retries: 3
+    redis:
+      image: redis:7-alpine
+      container_name: curasnip-redis
+      restart: unless-stopped
+
+      ports:
+        - "6379:6379"
+
+      volumes:
+        - redis_data:/data
+
+       #enables Redis AOF persistence so cached data survives container restarts (good practice even though it's a cache).
+      command: > 
+        redis-server
+        --appendonly yes 
+
+      networks:
+        - curasnip-network
+
+      healthcheck:
+        test: [ "CMD", "redis-cli", "ping" ]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+#    rabbitmq:
+#      image: rabbitmq:3-management-alpine
+#      container_name: curasnip-rabbitmq
+#      ports:
+#        - "5672:5672"
+#        - "15672:15672"
+#      environment:
+#        RABBITMQ_DEFAULT_USER: curasnip
+#        RABBITMQ_DEFAULT_PASS: curasnip
+    prometheus:
+      image: prom/prometheus
+      ports:
+        - "9090:9090"
+      volumes:
+        - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      networks:
+        - curasnip-network
+
+    grafana:
+      image: grafana/grafana
+      ports:
+          - "3000:3000"
+      depends_on:
+          - prometheus
+      networks:
+        - curasnip-network
+
+  volumes:
+    postgres_data:
+    minio_data:
+    pgadmin_data:
+    redis_data:
+
+  networks:
+    curasnip-network:
+      driver: bridge
