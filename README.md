@@ -63,7 +63,7 @@ Expiry, burn-after-read, and creator deletion each have different consistency an
 Scheduled jobs use ShedLock with PostgreSQL so multiple application instances don't execute the same scheduled job simultaneously.
 
 ## Architecture
-
+![alt text](Architecture.png)
 
 ## Load Test
 
