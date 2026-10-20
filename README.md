@@ -64,7 +64,6 @@ Scheduled jobs use ShedLock with PostgreSQL so multiple application instances do
 
 ## Architecture
 
-![alt text](image.png)
 
 ## Load Test
 
